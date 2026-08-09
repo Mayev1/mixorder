@@ -194,6 +194,18 @@ interface WorkspaceContextValue {
   mergeAndRemoveDuplicates: (keeperId: TrackId, sourceIds: TrackId[]) => void;
   /** Replace ordering — foundation for sort / set builder. */
   reorderTracks: (orderedIds: TrackId[]) => void;
+  /**
+   * Positional bulk import of externally supplied BPM / key data.
+   * `entries[i]` is applied to `project.tracks[i]`. No matching, no
+   * reordering, no audio analysis, no file is touched on disk.
+   */
+  applyExternalAnalysis: (
+    entries: Array<{
+      bpm: number | null;
+      musicalKey: string | null;
+      camelot?: string | null;
+    }>,
+  ) => number;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -877,6 +889,44 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return () => keyAnalysisEngine.setPersistHandler(null);
   }, []);
 
+  const applyExternalAnalysis = useCallback<
+    WorkspaceContextValue["applyExternalAnalysis"]
+  >((entries) => {
+    let applied = 0;
+    setProject((p) => {
+      if (!p || entries.length !== p.tracks.length) return p;
+      const now = Date.now();
+      const nextTracks = p.tracks.map((t, i) => {
+        const e = entries[i];
+        if (!e) return t;
+        applied += 1;
+        return {
+          ...t,
+          bpm: e.bpm ?? t.bpm,
+          musicalKey: e.musicalKey ?? t.musicalKey,
+          camelot: e.camelot ?? toCamelot(e.musicalKey ?? t.musicalKey),
+          analysisStatus: "done" as const,
+          modifiedAt: now,
+        };
+      });
+      const nextProject = { ...p, tracks: nextTracks };
+      const fp = projectFingerprint(nextProject);
+      let snap = loadSnapshot(fp);
+      nextTracks.forEach((t) => {
+        snap = upsertTrackData(snap, nextProject.name, t.path, {
+          source: "external-paste",
+          bpm: t.bpm,
+          musicalKey: t.musicalKey,
+          modifiedAt: now,
+        });
+      });
+      if (snap) saveSnapshot(fp, snap);
+      return nextProject;
+    });
+    return applied;
+  }, []);
+
+
   // Sync the queue whenever the library changes (add / remove / reload).
   // Auto-start: any missing key triggers background analysis.
   useEffect(() => {
@@ -914,6 +964,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       removeTracks,
       mergeAndRemoveDuplicates,
       reorderTracks,
+      applyExternalAnalysis,
     }),
     [
       project,
@@ -934,6 +985,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       removeTracks,
       mergeAndRemoveDuplicates,
       reorderTracks,
+      applyExternalAnalysis,
     ],
   );
 

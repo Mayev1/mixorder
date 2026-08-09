@@ -7,12 +7,19 @@ import {
   Wand2,
   Blocks,
   ChevronRight,
+  ClipboardPaste,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Logo } from "./Logo";
 import { MotionButton } from "./motion-primitives";
 import { useWorkspace } from "@/lib/workspace-context";
 import { isNativePlatform, pickFolderNative } from "@/lib/folder-import";
+import {
+  clearPendingPaste,
+  getPendingPaste,
+  setPendingPaste,
+} from "@/lib/analysis/pending-paste";
+import { parseExternalAnalysisPaste } from "@/lib/analysis/paste-import";
 
 /**
  * WelcomeScreen — native Android-style home for MixOrder.
@@ -38,10 +45,28 @@ export function WelcomeScreen() {
   const [picking, setPicking] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pasteOn, setPasteOn] = useState(false);
+  const [pasteText, setPasteText] = useState("");
 
   useEffect(() => {
     setNative(isNativePlatform());
+    const pending = getPendingPaste();
+    if (pending) {
+      setPasteOn(true);
+      setPasteText(pending);
+    }
   }, []);
+
+  const pastedBlocks = pasteText.trim()
+    ? parseExternalAnalysisPaste(pasteText).blocks.length
+    : 0;
+
+  const syncPaste = (value: string) => {
+    setPasteText(value);
+    if (value.trim()) setPendingPaste(value);
+    else clearPendingPaste();
+  };
+
 
   const handlePick = async () => {
     setError(null);
@@ -148,6 +173,54 @@ export function WelcomeScreen() {
         {error && (
           <p className="mt-3 text-center text-[12px] text-destructive">{error}</p>
         )}
+
+        {/* Import BPM + tonalités depuis un site d'analyse */}
+        <div className="mt-4 rounded-2xl border border-border bg-surface p-4">
+          <label className="flex items-center gap-3">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+              <ClipboardPaste className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold text-foreground">
+                Importer BPM + tonalités
+              </p>
+              <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+                Collez les données copiées d'un site d'analyse.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={pasteOn}
+              onChange={(e) => {
+                setPasteOn(e.target.checked);
+                if (!e.target.checked) syncPaste("");
+              }}
+              className="h-5 w-5 shrink-0 accent-[hsl(var(--primary))]"
+            />
+          </label>
+
+          {pasteOn && (
+            <>
+              <textarea
+                value={pasteText}
+                onChange={(e) => syncPaste(e.target.value)}
+                rows={6}
+                placeholder={"File NameKeyAlt KeyBPM\nMorceau 1.mp3\nA major\n11B\n81\n…"}
+                className="mt-3 w-full rounded-xl border border-border bg-background p-3 font-mono text-[11.5px] text-foreground outline-none focus:border-border-strong"
+              />
+              <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
+                Les données sont associées <strong>dans l'ordre exact</strong>{" "}
+                des morceaux du dossier. Le nombre de lignes doit correspondre
+                au nombre de fichiers.
+                {pastedBlocks > 0 && (
+                  <> {pastedBlocks} bloc(s) détecté(s) — sélectionnez maintenant
+                  votre dossier pour vérifier la correspondance.</>
+                )}
+              </p>
+            </>
+          )}
+        </div>
+
 
         {/* Recent library — one-tap reopen */}
         {mostRecent && (

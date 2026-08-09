@@ -13,6 +13,7 @@ export type BpmSourceId =
   | "manual-discdj"
   | "discdj-auto"
   | "essentia"
+  | "external-paste"
   | "hybrid-key";
 
 export interface BpmSourceDefinition {
