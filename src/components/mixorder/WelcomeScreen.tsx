@@ -45,10 +45,28 @@ export function WelcomeScreen() {
   const [picking, setPicking] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pasteOn, setPasteOn] = useState(false);
+  const [pasteText, setPasteText] = useState("");
 
   useEffect(() => {
     setNative(isNativePlatform());
+    const pending = getPendingPaste();
+    if (pending) {
+      setPasteOn(true);
+      setPasteText(pending);
+    }
   }, []);
+
+  const pastedBlocks = pasteText.trim()
+    ? parseExternalAnalysisPaste(pasteText).blocks.length
+    : 0;
+
+  const syncPaste = (value: string) => {
+    setPasteText(value);
+    if (value.trim()) setPendingPaste(value);
+    else clearPendingPaste();
+  };
+
 
   const handlePick = async () => {
     setError(null);
