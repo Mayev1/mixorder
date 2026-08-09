@@ -964,6 +964,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       removeTracks,
       mergeAndRemoveDuplicates,
       reorderTracks,
+      applyExternalAnalysis,
     }),
     [
       project,
@@ -984,6 +985,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       removeTracks,
       mergeAndRemoveDuplicates,
       reorderTracks,
+      applyExternalAnalysis,
     ],
   );
 
