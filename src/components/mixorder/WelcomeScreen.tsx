@@ -7,12 +7,19 @@ import {
   Wand2,
   Blocks,
   ChevronRight,
+  ClipboardPaste,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Logo } from "./Logo";
 import { MotionButton } from "./motion-primitives";
 import { useWorkspace } from "@/lib/workspace-context";
 import { isNativePlatform, pickFolderNative } from "@/lib/folder-import";
+import {
+  clearPendingPaste,
+  getPendingPaste,
+  setPendingPaste,
+} from "@/lib/analysis/pending-paste";
+import { parseExternalAnalysisPaste } from "@/lib/analysis/paste-import";
 
 /**
  * WelcomeScreen — native Android-style home for MixOrder.
