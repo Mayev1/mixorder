@@ -194,6 +194,18 @@ interface WorkspaceContextValue {
   mergeAndRemoveDuplicates: (keeperId: TrackId, sourceIds: TrackId[]) => void;
   /** Replace ordering — foundation for sort / set builder. */
   reorderTracks: (orderedIds: TrackId[]) => void;
+  /**
+   * Positional bulk import of externally supplied BPM / key data.
+   * `entries[i]` is applied to `project.tracks[i]`. No matching, no
+   * reordering, no audio analysis, no file is touched on disk.
+   */
+  applyExternalAnalysis: (
+    entries: Array<{
+      bpm: number | null;
+      musicalKey: string | null;
+      camelot?: string | null;
+    }>,
+  ) => number;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
