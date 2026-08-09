@@ -889,6 +889,44 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return () => keyAnalysisEngine.setPersistHandler(null);
   }, []);
 
+  const applyExternalAnalysis = useCallback<
+    WorkspaceContextValue["applyExternalAnalysis"]
+  >((entries) => {
+    let applied = 0;
+    setProject((p) => {
+      if (!p || entries.length !== p.tracks.length) return p;
+      const now = Date.now();
+      const nextTracks = p.tracks.map((t, i) => {
+        const e = entries[i];
+        if (!e) return t;
+        applied += 1;
+        return {
+          ...t,
+          bpm: e.bpm ?? t.bpm,
+          musicalKey: e.musicalKey ?? t.musicalKey,
+          camelot: e.camelot ?? toCamelot(e.musicalKey ?? t.musicalKey),
+          analysisStatus: "done" as const,
+          modifiedAt: now,
+        };
+      });
+      const nextProject = { ...p, tracks: nextTracks };
+      const fp = projectFingerprint(nextProject);
+      let snap = loadSnapshot(fp);
+      nextTracks.forEach((t) => {
+        snap = upsertTrackData(snap, nextProject.name, t.path, {
+          source: "external-paste",
+          bpm: t.bpm,
+          musicalKey: t.musicalKey,
+          modifiedAt: now,
+        });
+      });
+      if (snap) saveSnapshot(fp, snap);
+      return nextProject;
+    });
+    return applied;
+  }, []);
+
+
   // Sync the queue whenever the library changes (add / remove / reload).
   // Auto-start: any missing key triggers background analysis.
   useEffect(() => {
