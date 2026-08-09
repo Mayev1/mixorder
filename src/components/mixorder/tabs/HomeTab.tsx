@@ -17,6 +17,7 @@ import {
   Sparkle,
   BadgeCheck,
   AudioWaveform,
+  ClipboardPaste,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { MotionButton } from "../motion-primitives";
@@ -26,6 +27,7 @@ import { useDuplicates } from "@/hooks/useDuplicates";
 import { useRobotJournal } from "@/hooks/useRobotJournal";
 import { projectFingerprint } from "@/lib/analysis/persistence";
 import { loadHistory, type RenameBatch } from "@/lib/rename/history";
+import { ExternalAnalysisImport } from "../ExternalAnalysisImport";
 
 type TabId =
   | "home"
@@ -61,6 +63,7 @@ export function HomeTab({ onNavigate, onChangeLibrary }: HomeTabProps) {
   );
   const { entries: journal } = useRobotJournal();
   const [renameBatches, setRenameBatches] = useState<RenameBatch[]>([]);
+  const [pasteOpen, setPasteOpen] = useState(false);
 
   useEffect(() => {
     if (!fingerprint) return;
@@ -173,9 +176,18 @@ export function HomeTab({ onNavigate, onChangeLibrary }: HomeTabProps) {
             label="Renommage"
             desc="Templates batch + Undo"
             onClick={() => onNavigate("rename")}
+          />
+          <ActionCard
+            icon={ClipboardPaste}
+            label="Importer BPM + tonalités"
+            desc="Coller les données d'un site d'analyse"
+            onClick={() => setPasteOpen(true)}
             className="col-span-2"
           />
         </div>
+        {pasteOpen && (
+          <ExternalAnalysisImport onClose={() => setPasteOpen(false)} />
+        )}
       </section>
 
       {/* 3 — Progression */}
